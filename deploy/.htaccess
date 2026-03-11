@@ -1,0 +1,20 @@
+# InfinityFree er jonno Apache mod_rewrite rule
+# Eta CORS header add kore and proper routing ensure kore
+
+# Security: directory listing off
+Options -Indexes
+
+# Error documents
+ErrorDocument 404 /index.html
+
+# CORS Headers for API calls (same origin e lagbe na, but safe side e)
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Headers "Content-Type, X-Admin"
+    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+</IfModule>
+
+# PHP files properly serve hobe
+<IfModule mod_mime.c>
+    AddType application/x-httpd-php .php
+</IfModule>

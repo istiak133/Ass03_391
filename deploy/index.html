@@ -1,0 +1,1941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Workshop — Appointment System</title>
+
+    <style>
+        /* ============================================
+           CSS VARIABLES — Shob color ekhane define
+           Ekbar change korle shob jaygay change hobe
+           ============================================ */
+        :root {
+            --bg-primary: #0f0f1a;        /* Page background — deepest dark */
+            --bg-secondary: #1a1a2e;      /* Card/section background */
+            --bg-tertiary: #16213e;       /* Input fields, hover states */
+            --bg-nav: #0a0a14;            /* Navigation bar background */
+
+            --text-primary: #e8e8e8;      /* Main text — almost white */
+            --text-secondary: #a0aec0;    /* Dimmed text — labels, hints */
+            --text-muted: #636e7a;        /* Very faded text */
+
+            --accent: #53a8b6;            /* Teal accent — buttons, highlights */
+            --accent-hover: #6bc4d2;      /* Lighter accent on hover */
+            --accent-dim: #2a5f6b;        /* Faded accent — borders */
+
+            --success: #48bb78;           /* Green — success messages */
+            --error: #f56565;             /* Red — error messages */
+            --warning: #ed8936;           /* Orange — warnings */
+
+            --border: #2d3748;            /* Subtle borders */
+            --shadow: rgba(0, 0, 0, 0.3); /* Box shadows */
+
+            --radius: 6px;               /* Border radius — rounded corners */
+            --transition: 0.2s ease;      /* Animation speed */
+        }
+
+        /* ============================================
+           RESET — Browser er default styles remove
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* ============================================
+           BODY — Page er base styling
+           ============================================ */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* ============================================
+           NAVIGATION BAR — Top e fixed thake
+           ============================================ */
+        .navbar {
+            background-color: var(--bg-nav);
+            border-bottom: 1px solid var(--border);
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-brand {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent);
+            padding: 1rem 0;
+            letter-spacing: 0.5px;
+        }
+
+        .navbar-nav {
+            display: flex;
+            list-style: none;
+            gap: 0.25rem;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-family: inherit;
+            border-bottom: 2px solid transparent;
+            transition: color var(--transition), border-color var(--transition);
+        }
+
+        .nav-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        /* ============================================
+           MAIN CONTAINER — Content area
+           ============================================ */
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* ============================================
+           SECTIONS — Show/Hide (SPA behavior)
+           ============================================ */
+        .section {
+            display: none;           /* Default: shob hidden */
+        }
+
+        .section.active {
+            display: block;          /* Shudhu active section dekhabe */
+        }
+
+        /* ============================================
+           SECTION HEADER
+           ============================================ */
+        .section-header {
+            margin-bottom: 2rem;
+        }
+
+        .section-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .section-header p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* ============================================
+           CARDS — Content containers
+           ============================================ */
+        .card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        /* ============================================
+           FORM ELEMENTS
+           ============================================ */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.65rem 0.85rem;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: border-color var(--transition);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-error {
+            color: var(--error);
+            font-size: 0.8rem;
+            margin-top: 0.3rem;
+            display: none;              /* Default hidden — JS show korbe error hole */
+        }
+
+        /* ============================================
+           BUTTONS
+           ============================================ */
+        .btn {
+            padding: 0.6rem 1.5rem;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color var(--transition), opacity var(--transition);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: #fff;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: var(--border);
+        }
+
+        .btn-danger {
+            background-color: var(--error);
+            color: #fff;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            opacity: 0.85;
+        }
+
+        .btn-sm {
+            padding: 0.35rem 0.85rem;
+            font-size: 0.8rem;
+        }
+
+        /* ============================================
+           MECHANIC CARDS — Selection grid
+           ============================================ */
+        .mechanic-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .mechanic-card {
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            transition: border-color var(--transition), background-color var(--transition);
+        }
+
+        .mechanic-card:hover {
+            border-color: var(--accent-dim);
+        }
+
+        .mechanic-card.selected {
+            border-color: var(--accent);
+            background-color: rgba(83, 168, 182, 0.08);
+        }
+
+        .mechanic-card.full {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .mechanic-card .mechanic-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .mechanic-card .mechanic-spec {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .mechanic-card .slot-info {
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .slot-available {
+            color: var(--success);
+        }
+
+        .slot-full {
+            color: var(--error);
+        }
+
+        .next-date-info {
+            color: var(--warning);
+            font-size: 0.78rem;
+            margin-top: 0.3rem;
+        }
+
+        /* ============================================
+           TABLES — Admin panel, appointment lists
+           ============================================ */
+        .table-wrapper {
+            overflow-x: auto;            /* Mobile e horizontal scroll */
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        thead {
+            background-color: var(--bg-tertiary);
+        }
+
+        th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        tbody tr:hover {
+            background-color: rgba(83, 168, 182, 0.04);
+        }
+
+        /* ============================================
+           STATUS BADGES
+           ============================================ */
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-active {
+            background-color: rgba(72, 187, 120, 0.15);
+            color: var(--success);
+        }
+
+        .badge-completed {
+            background-color: rgba(83, 168, 182, 0.15);
+            color: var(--accent);
+        }
+
+        .badge-cancelled {
+            background-color: rgba(245, 101, 101, 0.15);
+            color: var(--error);
+        }
+
+        .badge-full {
+            background-color: rgba(245, 101, 101, 0.15);
+            color: var(--error);
+        }
+
+        /* ============================================
+           ALERTS / NOTIFICATIONS
+           ============================================ */
+        .alert {
+            padding: 0.85rem 1.25rem;
+            border-radius: var(--radius);
+            margin-bottom: 1.25rem;
+            font-size: 0.9rem;
+            display: none;               /* Default hidden — JS show korbe */
+        }
+
+        .alert-success {
+            background-color: rgba(72, 187, 120, 0.12);
+            border: 1px solid rgba(72, 187, 120, 0.25);
+            color: var(--success);
+        }
+
+        .alert-error {
+            background-color: rgba(245, 101, 101, 0.12);
+            border: 1px solid rgba(245, 101, 101, 0.25);
+            color: var(--error);
+        }
+
+        .alert-info {
+            background-color: rgba(83, 168, 182, 0.12);
+            border: 1px solid rgba(83, 168, 182, 0.25);
+            color: var(--accent);
+        }
+
+        /* ============================================
+           MODAL — Popup for admin edit actions
+           ============================================ */
+        .modal-overlay {
+            display: none;                /* Default hidden */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 2rem;
+            width: 90%;
+            max-width: 480px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        /* ============================================
+           CONFIRMATION PREVIEW
+           ============================================ */
+        .preview-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        .preview-row:last-child {
+            border-bottom: none;
+        }
+
+        .preview-label {
+            color: var(--text-secondary);
+        }
+
+        .preview-value {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* ============================================
+           FILTER BAR — Admin panel filters
+           ============================================ */
+        .filter-bar {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.25rem;
+        }
+
+        .filter-bar input,
+        .filter-bar select {
+            padding: 0.5rem 0.75rem;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            font-family: inherit;
+        }
+
+        .filter-bar input:focus,
+        .filter-bar select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* ============================================
+           HELP SECTION — Accordion style FAQ
+           ============================================ */
+        .help-item {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+        }
+
+        .help-question {
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.95rem;
+            background-color: var(--bg-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color var(--transition);
+        }
+
+        .help-question:hover {
+            background-color: var(--bg-tertiary);
+        }
+
+        .help-question .arrow {
+            transition: transform var(--transition);
+            color: var(--text-muted);
+        }
+
+        .help-item.open .help-question .arrow {
+            transform: rotate(180deg);
+        }
+
+        .help-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background-color: var(--bg-primary);
+        }
+
+        .help-item.open .help-answer {
+            max-height: 500px;
+        }
+
+        .help-answer-content {
+            padding: 1rem 1.25rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+
+        /* ============================================
+           ADMIN LOGIN FORM
+           ============================================ */
+        .login-box {
+            max-width: 380px;
+            margin: 2rem auto;
+        }
+
+        /* ============================================
+           INLINE SEARCH BAR
+           ============================================ */
+        .search-bar {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-bar input {
+            flex: 1;
+            padding: 0.65rem 0.85rem;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+
+        .search-bar input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* ============================================
+           UTILITY CLASSES
+           ============================================ */
+        .text-center { text-align: center; }
+        .text-muted { color: var(--text-muted); }
+        .mt-1 { margin-top: 0.5rem; }
+        .mt-2 { margin-top: 1rem; }
+        .mt-3 { margin-top: 1.5rem; }
+        .mb-1 { margin-bottom: 0.5rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .hidden { display: none; }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* ============================================
+           LOADING SPINNER
+           ============================================ */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ============================================
+           EMPTY STATE — Jokhn kono data nai
+           ============================================ */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state p {
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ==========================================
+         NAVIGATION BAR
+         Button click korle section switch hobe
+         ========================================== -->
+    <nav class="navbar">
+        <div class="navbar-brand">Car Workshop</div>
+        <div class="navbar-nav">
+            <button class="nav-btn active" data-section="booking">Book Appointment</button>
+            <button class="nav-btn" data-section="my-appointments">My Appointments</button>
+            <button class="nav-btn" data-section="admin">Admin</button>
+            <button class="nav-btn" data-section="help">Help</button>
+        </div>
+    </nav>
+
+    <!-- ==========================================
+         MAIN CONTENT AREA
+         ========================================== -->
+    <div class="container">
+
+        <!-- ======================================
+             SECTION 1: BOOK APPOINTMENT
+             ====================================== -->
+        <div id="section-booking" class="section active">
+            <div class="section-header">
+                <h2>Book an Appointment</h2>
+                <p>Fill in your details, select a date and mechanic to book your appointment.</p>
+            </div>
+
+            <!-- Alert messages (success/error) -->
+            <div id="booking-alert" class="alert"></div>
+
+            <!-- Step 1: Appointment Form -->
+            <div id="booking-form-container" class="card">
+                <div class="card-title">Appointment Details</div>
+                <form id="booking-form">
+                    <div class="form-group">
+                        <label for="client_name">Full Name</label>
+                        <input type="text" id="client_name" name="client_name" placeholder="Enter your full name">
+                        <div class="form-error" id="error-client_name"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="client_address">Address</label>
+                        <input type="text" id="client_address" name="client_address" placeholder="Enter your address">
+                        <div class="form-error" id="error-client_address"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="client_phone">Phone Number</label>
+                        <input type="tel" id="client_phone" name="client_phone" placeholder="e.g. 01711111111">
+                        <div class="form-error" id="error-client_phone"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="car_license">Car License Number</label>
+                        <input type="text" id="car_license" name="car_license" placeholder="e.g. Dhaka Metro 12-3456">
+                        <div class="form-error" id="error-car_license"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="car_engine">Car Engine Number</label>
+                        <input type="text" id="car_engine" name="car_engine" placeholder="e.g. 12345678">
+                        <div class="form-error" id="error-car_engine"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="appointment_date">Appointment Date</label>
+                        <input type="date" id="appointment_date" name="appointment_date">
+                        <div class="form-error" id="error-appointment_date"></div>
+                    </div>
+
+                    <!-- Mechanic Selection (date select korar por show hobe) -->
+                    <div id="mechanic-section" class="hidden">
+                        <label class="mb-1" style="font-size:0.85rem; font-weight:500; color:var(--text-secondary);">Select a Mechanic</label>
+                        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.5rem;">Click on a mechanic to see available slots.</p>
+                        <div id="mechanic-grid" class="mechanic-grid">
+                            <!-- JS diye mechanic cards generate hobe -->
+                        </div>
+                        <div class="form-error" id="error-mechanic"></div>
+                    </div>
+
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary" id="btn-review">Review Booking</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 2: Confirmation Preview (initially hidden) -->
+            <div id="booking-preview" class="card hidden">
+                <div class="card-title">Confirm Your Booking</div>
+                <div id="preview-content">
+                    <!-- JS diye preview data generate hobe -->
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" id="btn-back-edit">Go Back & Edit</button>
+                    <button class="btn btn-primary" id="btn-confirm-booking">Confirm Booking</button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ======================================
+             SECTION 2: MY APPOINTMENTS
+             ====================================== -->
+        <div id="section-my-appointments" class="section">
+            <div class="section-header">
+                <h2>My Appointments</h2>
+                <p>Enter your phone number to view and manage your appointments.</p>
+            </div>
+
+            <div id="lookup-alert" class="alert"></div>
+
+            <div class="search-bar">
+                <input type="tel" id="lookup-phone" placeholder="Enter your phone number">
+                <button class="btn btn-primary" id="btn-lookup">Search</button>
+            </div>
+
+            <div id="lookup-results">
+                <div class="empty-state">
+                    <p>Enter your phone number above to find your appointments.</p>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ======================================
+             SECTION 3: ADMIN PANEL
+             ====================================== -->
+        <div id="section-admin" class="section">
+
+            <!-- Admin Login (logged out state) -->
+            <div id="admin-login-container">
+                <div class="section-header">
+                    <h2>Admin Panel</h2>
+                    <p>Login with your admin credentials to manage appointments.</p>
+                </div>
+
+                <div id="admin-login-alert" class="alert"></div>
+
+                <div class="login-box card">
+                    <div class="card-title">Admin Login</div>
+                    <form id="admin-login-form">
+                        <div class="form-group">
+                            <label for="admin_username">Username</label>
+                            <input type="text" id="admin_username" placeholder="Enter username">
+                        </div>
+                        <div class="form-group">
+                            <label for="admin_password">Password</label>
+                            <input type="password" id="admin_password" placeholder="Enter password">
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width:100%;">Login</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Admin Dashboard (logged in state — initially hidden) -->
+            <div id="admin-dashboard" class="hidden">
+                <div class="section-header flex-between">
+                    <div>
+                        <h2>Dashboard</h2>
+                        <p>Manage all appointments and mechanic settings.</p>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" id="btn-admin-logout">Logout</button>
+                </div>
+
+                <div id="admin-alert" class="alert"></div>
+
+                <!-- Admin Tabs -->
+                <div style="display:flex; gap:0.5rem; margin-bottom:1.25rem;">
+                    <button class="btn btn-secondary btn-sm admin-tab active" data-tab="tab-appointments">Appointments</button>
+                    <button class="btn btn-secondary btn-sm admin-tab" data-tab="tab-mechanics">Mechanic Settings</button>
+                </div>
+
+                <!-- Tab 1: Appointments -->
+                <div id="tab-appointments" class="admin-tab-content">
+                    <div class="card">
+                        <div class="card-title">All Appointments</div>
+                        <div class="filter-bar">
+                            <input type="date" id="filter-date" placeholder="Filter by date">
+                            <select id="filter-mechanic">
+                                <option value="">All Mechanics</option>
+                            </select>
+                            <select id="filter-status">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                            <input type="tel" id="filter-phone" placeholder="Search phone">
+                        </div>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Client</th>
+                                        <th>Phone</th>
+                                        <th>Car Reg.</th>
+                                        <th>Date</th>
+                                        <th>Mechanic</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-appointments-body">
+                                    <tr><td colspan="7" class="text-center text-muted" style="padding:2rem;">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Mechanic Settings -->
+                <div id="tab-mechanics" class="admin-tab-content hidden">
+                    <div class="card">
+                        <div class="card-title">Mechanic Max Daily Slots</div>
+                        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">Change the maximum number of daily appointments for each mechanic.</p>
+                        <div id="mechanic-settings-list">
+                            <!-- JS diye generate hobe -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ======================================
+             SECTION 4: HELP
+             ====================================== -->
+        <div id="section-help" class="section">
+            <div class="section-header">
+                <h2>Help & Guide</h2>
+                <p>Everything you need to know about booking an appointment.</p>
+            </div>
+
+            <div class="help-item">
+                <div class="help-question" onclick="toggleHelp(this)">
+                    <span>How do I book an appointment?</span>
+                    <span class="arrow">&#9662;</span>
+                </div>
+                <div class="help-answer">
+                    <div class="help-answer-content">
+                        1. Go to "Book Appointment" from the navigation bar.<br>
+                        2. Fill in your name, address, phone number, car license and engine number.<br>
+                        3. Select your preferred appointment date.<br>
+                        4. Click on a mechanic to see their available slots.<br>
+                        5. Select an available mechanic (not marked as FULL).<br>
+                        6. Click "Review Booking" to see a summary.<br>
+                        7. Click "Confirm Booking" to finalize.
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-item">
+                <div class="help-question" onclick="toggleHelp(this)">
+                    <span>What if my preferred mechanic is fully booked?</span>
+                    <span class="arrow">&#9662;</span>
+                </div>
+                <div class="help-answer">
+                    <div class="help-answer-content">
+                        If a mechanic has no available slots for your selected date, their card will show "ALL SLOTS BOOKED" and the next available date will be displayed. You can either choose a different mechanic with available slots, or change your appointment date.
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-item">
+                <div class="help-question" onclick="toggleHelp(this)">
+                    <span>Can I book multiple appointments on the same day?</span>
+                    <span class="arrow">&#9662;</span>
+                </div>
+                <div class="help-answer">
+                    <div class="help-answer-content">
+                        Yes. You can book appointments with different mechanics on the same date, for example if you have multiple cars that need servicing. However, you cannot book the same car with the same mechanic on the same date twice.
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-item">
+                <div class="help-question" onclick="toggleHelp(this)">
+                    <span>How do I view or cancel my appointments?</span>
+                    <span class="arrow">&#9662;</span>
+                </div>
+                <div class="help-answer">
+                    <div class="help-answer-content">
+                        Go to "My Appointments" from the navigation bar. Enter the phone number you used during booking and click "Search". All your appointments will be listed with their status. Active appointments will have a "Cancel" button.
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-item">
+                <div class="help-question" onclick="toggleHelp(this)">
+                    <span>What are the form field requirements?</span>
+                    <span class="arrow">&#9662;</span>
+                </div>
+                <div class="help-answer">
+                    <div class="help-answer-content">
+                        <strong>Name:</strong> Cannot be empty.<br>
+                        <strong>Address:</strong> Cannot be empty.<br>
+                        <strong>Phone:</strong> Must contain only digits (numbers).<br>
+                        <strong>Car License Number:</strong> Cannot be empty.<br>
+                        <strong>Car Engine Number:</strong> Must contain only digits.<br>
+                        <strong>Date:</strong> Must be a today or future date (no past dates).<br>
+                        <strong>Mechanic:</strong> Must select one with available slots.
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-item">
+                <div class="help-question" onclick="toggleHelp(this)">
+                    <span>What do the appointment statuses mean?</span>
+                    <span class="arrow">&#9662;</span>
+                </div>
+                <div class="help-answer">
+                    <div class="help-answer-content">
+                        <strong>Active:</strong> Your appointment is confirmed and scheduled.<br>
+                        <strong>Completed:</strong> The service has been done.<br>
+                        <strong>Cancelled:</strong> The appointment was cancelled by you or the admin.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /container -->
+
+
+    <!-- ==========================================
+         MODAL — Admin edit popup (reusable)
+         ========================================== -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-title" id="modal-title">Edit</div>
+            <div id="modal-body">
+                <!-- JS diye content generate hobe -->
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="btn-modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="btn-modal-save">Save</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==========================================
+         JAVASCRIPT — SPA Logic
+         ========================================== -->
+    <script>
+        // ============================================
+        //  NAVIGATION — Section Show/Hide
+        // ============================================
+
+        // Shob nav button select koro
+        const navButtons = document.querySelectorAll('.nav-btn');
+
+        // Prottek button e click event lagao
+        navButtons.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                // Current active nav button theke 'active' class remove
+                document.querySelector('.nav-btn.active').classList.remove('active');
+                // Clicked button e 'active' class add
+                btn.classList.add('active');
+
+                // Shob section hide koro
+                document.querySelectorAll('.section').forEach(function(sec) {
+                    sec.classList.remove('active');
+                });
+
+                // Target section show koro
+                var sectionId = 'section-' + btn.dataset.section;
+                document.getElementById(sectionId).classList.add('active');
+            });
+        });
+
+
+        // ============================================
+        //  ADMIN TABS — Appointments / Mechanic Settings
+        // ============================================
+
+        document.querySelectorAll('.admin-tab').forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                // Active tab button update
+                document.querySelector('.admin-tab.active').classList.remove('active');
+                tab.classList.add('active');
+
+                // Tab content switch
+                document.querySelectorAll('.admin-tab-content').forEach(function(content) {
+                    content.classList.add('hidden');
+                });
+                document.getElementById(tab.dataset.tab).classList.remove('hidden');
+            });
+        });
+
+
+        // ============================================
+        //  HELP — Accordion Toggle
+        // ============================================
+
+        function toggleHelp(element) {
+            // element = clicked .help-question div
+            // parentElement = .help-item (parent container)
+            var item = element.parentElement;
+
+            // Toggle 'open' class — add hole expand, remove hole collapse
+            item.classList.toggle('open');
+        }
+
+
+        // ============================================
+        //  MODAL — Open / Close
+        // ============================================
+
+        function openModal(title, bodyHtml) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-body').innerHTML = bodyHtml;
+            document.getElementById('modal-overlay').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('active');
+        }
+
+        // Cancel button e modal close
+        document.getElementById('btn-modal-cancel').addEventListener('click', closeModal);
+
+        // Overlay (dark background) click korleo modal close
+        document.getElementById('modal-overlay').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+
+        // ============================================
+        //  ALERT — Show notification messages
+        // ============================================
+
+        function showAlert(elementId, type, message) {
+            // elementId = kon alert div e dekhabo
+            // type = 'success', 'error', 'info'
+            // message = ki message dekhabo
+            var alertEl = document.getElementById(elementId);
+            alertEl.className = 'alert alert-' + type;
+            alertEl.textContent = message;
+            alertEl.style.display = 'block';
+
+            // 5 second por automatically hide hobe
+            setTimeout(function() {
+                alertEl.style.display = 'none';
+            }, 5000);
+        }
+
+
+        // ============================================
+        //  DATE PICKER — Minimum date set (today)
+        //  Past date select kora jabe na
+        // ============================================
+
+        var today = new Date().toISOString().split('T')[0]; // '2026-03-10'
+        var dateInput = document.getElementById('appointment_date');
+        if (dateInput) {
+            dateInput.setAttribute('min', today);     // Minimum = today
+        }
+
+
+        // ============================================
+        //  FEATURE 7: REAL-TIME MECHANIC SLOT UPDATE
+        //  Date select korle mechanic cards dekhay
+        //  Click korle slot info dekhay + mechanic select hoy
+        // ============================================
+
+        // --- State Variables ---
+        // Selected mechanic er info rakhi — form submit e lagbe
+        var selectedMechanicId = null;
+        var selectedMechanicName = '';
+
+        // Mechanic section ar grid er reference
+        var mechanicSection = document.getElementById('mechanic-section');
+        var mechanicGrid = document.getElementById('mechanic-grid');
+
+
+        // --- DATE CHANGE EVENT ---
+        // User jokhn date picker e date select kore, TOKHN mechanic cards load hoy
+        dateInput.addEventListener('change', function() {
+            var selectedDate = dateInput.value;
+
+            // Date empty hole mechanic section hide koro
+            if (!selectedDate) {
+                mechanicSection.classList.add('hidden');
+                mechanicGrid.innerHTML = '';
+                clearMechanicSelection();
+                return;
+            }
+
+            // Mechanic section show koro + loading state dekhao
+            mechanicSection.classList.remove('hidden');
+            mechanicGrid.innerHTML = '<div class="text-center text-muted" style="grid-column:1/-1;padding:1.5rem;"><span class="spinner"></span> Loading mechanics...</div>';
+
+            // Selection reset koro (notun date e notun select korte hobe)
+            clearMechanicSelection();
+
+            // API call — shob mechanic er slot info fetch koro ei date er jonno
+            loadMechanicSlots(selectedDate);
+        });
+
+
+        // --- LOAD MECHANIC SLOTS ---
+        // API theke shob mechanic er slot info niye card generate kore
+        async function loadMechanicSlots(date) {
+            try {
+                // Step 1: Mechanic list fetch koro
+                var listResponse = await fetch('/api/mechanics.php?action=list');
+                var listData = await listResponse.json();
+
+                if (!listData.success) {
+                    mechanicGrid.innerHTML = '<p class="text-muted" style="grid-column:1/-1;">Failed to load mechanics.</p>';
+                    return;
+                }
+
+                var mechanics = listData.data;
+
+                // Step 2: Prottek mechanic er slot info fetch koro (parallel — shob ekhonto)
+                // Promise.all() = shob fetch ke ekhonto start kore, shob complete hole continue hoy
+                var slotPromises = mechanics.map(function(mech) {
+                    return fetch('/api/mechanics.php?action=slots&mechanic_id=' + mech.id + '&date=' + date)
+                        .then(function(res) { return res.json(); });
+                });
+
+                var slotResults = await Promise.all(slotPromises);
+
+                // Step 3: Cards generate koro
+                var cardsHtml = '';
+
+                for (var i = 0; i < mechanics.length; i++) {
+                    var mech = mechanics[i];
+                    var slotData = slotResults[i];
+
+                    if (!slotData.success) continue;
+
+                    var info = slotData.data;
+                    var isFull = info.is_full;
+
+                    // Card HTML build
+                    cardsHtml += '<div class="mechanic-card' + (isFull ? ' full' : '') + '" '
+                        + 'data-mechanic-id="' + info.id + '" '
+                        + 'data-mechanic-name="' + info.name + '" '
+                        + 'data-is-full="' + (isFull ? '1' : '0') + '">'
+                        + '<div class="mechanic-name">' + info.name + '</div>'
+                        + '<div class="mechanic-spec">' + info.specialization + '</div>'
+                        + '<div class="slot-info">';
+
+                    if (isFull) {
+                        cardsHtml += '<span class="slot-full">ALL SLOTS BOOKED</span>';
+                        if (info.next_available_date) {
+                            cardsHtml += '<div class="next-date-info">Next available: ' + formatDate(info.next_available_date) + '</div>';
+                        }
+                    } else {
+                        cardsHtml += '<span class="slot-available">' + info.free_slots + ' / ' + info.max_slots + ' slots available</span>';
+                    }
+
+                    cardsHtml += '</div></div>';
+                }
+
+                mechanicGrid.innerHTML = cardsHtml;
+
+            } catch (err) {
+                mechanicGrid.innerHTML = '<p class="text-muted" style="grid-column:1/-1;">Error loading mechanics. Please try again.</p>';
+            }
+        }
+
+
+        // --- MECHANIC CARD CLICK (Event Delegation) ---
+        // Grid er upor click listener boshai — child cards dynamically create hoy tai
+        mechanicGrid.addEventListener('click', function(e) {
+            // Clicked element theke nearest .mechanic-card khuijo
+            // closest() uporer dike khuije — niche click korleo card paowa jay
+            var card = e.target.closest('.mechanic-card');
+
+            // Card na hole ba full hole — kichu na kori
+            if (!card) return;
+            if (card.dataset.isFull === '1') return;
+
+            // Age selected card theke 'selected' class remove
+            var prevSelected = mechanicGrid.querySelector('.mechanic-card.selected');
+            if (prevSelected) {
+                prevSelected.classList.remove('selected');
+            }
+
+            // Ei card ke select koro
+            card.classList.add('selected');
+
+            // State e mechanic info save koro (form submit e lagbe)
+            selectedMechanicId = card.dataset.mechanicId;
+            selectedMechanicName = card.dataset.mechanicName;
+
+            // Error message thakle clear koro
+            document.getElementById('error-mechanic').style.display = 'none';
+        });
+
+
+        // --- HELPER: Clear Mechanic Selection ---
+        function clearMechanicSelection() {
+            selectedMechanicId = null;
+            selectedMechanicName = '';
+        }
+
+
+        // --- HELPER: Format Date (2026-03-15 → March 15, 2026) ---
+        function formatDate(dateStr) {
+            var parts = dateStr.split('-');
+            var d = new Date(parts[0], parts[1] - 1, parts[2]);
+            var months = ['January','February','March','April','May','June',
+                          'July','August','September','October','November','December'];
+            return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+        }
+
+
+        // ============================================
+        //  FEATURE 8: BOOKING FORM SUBMIT + CONFIRMATION
+        //  3 steps: Validate → Preview → Confirm & Book
+        // ============================================
+
+        var bookingForm = document.getElementById('booking-form');
+        var formContainer = document.getElementById('booking-form-container');
+        var previewContainer = document.getElementById('booking-preview');
+        var previewContent = document.getElementById('preview-content');
+
+
+        // --- STEP 1: "Review Booking" Click → Validate + Show Preview ---
+        bookingForm.addEventListener('submit', function(e) {
+            // Default form submit stop koro (page reload hoto)
+            e.preventDefault();
+
+            // Clear all previous error messages
+            document.querySelectorAll('.form-error').forEach(function(el) {
+                el.style.display = 'none';
+                el.textContent = '';
+            });
+
+            // Collect form values
+            var name = document.getElementById('client_name').value.trim();
+            var address = document.getElementById('client_address').value.trim();
+            var phone = document.getElementById('client_phone').value.trim();
+            var carLicense = document.getElementById('car_license').value.trim();
+            var carEngine = document.getElementById('car_engine').value.trim();
+            var date = document.getElementById('appointment_date').value;
+
+            // --- Validation ---
+            var hasError = false;
+
+            if (!name) {
+                showFieldError('client_name', 'Full name is required');
+                hasError = true;
+            }
+
+            if (!address) {
+                showFieldError('client_address', 'Address is required');
+                hasError = true;
+            }
+
+            if (!phone) {
+                showFieldError('client_phone', 'Phone number is required');
+                hasError = true;
+            } else if (!/^[0-9]+$/.test(phone)) {
+                showFieldError('client_phone', 'Phone must contain only digits');
+                hasError = true;
+            }
+
+            if (!carLicense) {
+                showFieldError('car_license', 'Car license number is required');
+                hasError = true;
+            }
+
+            if (!carEngine) {
+                showFieldError('car_engine', 'Car engine number is required');
+                hasError = true;
+            }
+
+            if (!date) {
+                showFieldError('appointment_date', 'Please select an appointment date');
+                hasError = true;
+            }
+
+            if (!selectedMechanicId) {
+                showFieldError('mechanic', 'Please select a mechanic');
+                hasError = true;
+            }
+
+            if (hasError) return;
+
+            // --- Show Confirmation Preview ---
+            previewContent.innerHTML =
+                '<div class="preview-row"><span class="preview-label">Name</span><span class="preview-value">' + escapeHtml(name) + '</span></div>' +
+                '<div class="preview-row"><span class="preview-label">Address</span><span class="preview-value">' + escapeHtml(address) + '</span></div>' +
+                '<div class="preview-row"><span class="preview-label">Phone</span><span class="preview-value">' + escapeHtml(phone) + '</span></div>' +
+                '<div class="preview-row"><span class="preview-label">Car License</span><span class="preview-value">' + escapeHtml(carLicense) + '</span></div>' +
+                '<div class="preview-row"><span class="preview-label">Car Engine</span><span class="preview-value">' + escapeHtml(carEngine) + '</span></div>' +
+                '<div class="preview-row"><span class="preview-label">Date</span><span class="preview-value">' + formatDate(date) + '</span></div>' +
+                '<div class="preview-row"><span class="preview-label">Mechanic</span><span class="preview-value">' + escapeHtml(selectedMechanicName) + '</span></div>';
+
+            // Form hide, Preview show
+            formContainer.classList.add('hidden');
+            previewContainer.classList.remove('hidden');
+        });
+
+
+        // --- STEP 2: "Go Back & Edit" Click → Preview Hide, Form Show ---
+        document.getElementById('btn-back-edit').addEventListener('click', function() {
+            previewContainer.classList.add('hidden');
+            formContainer.classList.remove('hidden');
+        });
+
+
+        // --- STEP 3: "Confirm Booking" Click → API POST Call ---
+        document.getElementById('btn-confirm-booking').addEventListener('click', async function() {
+            var btn = this;
+            btn.disabled = true;
+            btn.textContent = 'Booking...';
+
+            // Form data collect koro
+            var bookingData = {
+                client_name: document.getElementById('client_name').value.trim(),
+                client_address: document.getElementById('client_address').value.trim(),
+                client_phone: document.getElementById('client_phone').value.trim(),
+                car_license_number: document.getElementById('car_license').value.trim(),
+                car_engine_number: document.getElementById('car_engine').value.trim(),
+                mechanic_id: parseInt(selectedMechanicId),
+                appointment_date: document.getElementById('appointment_date').value
+            };
+
+            try {
+                var response = await fetch('/api/appointments.php?action=book', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bookingData)
+                });
+
+                var result = await response.json();
+
+                if (result.success) {
+                    // Success! Form reset + message dekhao
+                    showAlert('booking-alert', 'success', result.message + ' (ID: ' + result.data.appointment_id + ')');
+                    bookingForm.reset();
+                    clearMechanicSelection();
+                    mechanicSection.classList.add('hidden');
+                    mechanicGrid.innerHTML = '';
+                    previewContainer.classList.add('hidden');
+                    formContainer.classList.remove('hidden');
+
+                    // Date picker min reset (form.reset() clears it)
+                    dateInput.setAttribute('min', today);
+
+                    // Mechanic slots re-fetch (jodi date selected thake)
+                    // Ekhon form reset hoye geche, tai mechanic section hide e thakbe
+                } else {
+                    // Error — preview te thako, message dekhao
+                    showAlert('booking-alert', 'error', result.error);
+                    previewContainer.classList.add('hidden');
+                    formContainer.classList.remove('hidden');
+                }
+            } catch (err) {
+                showAlert('booking-alert', 'error', 'Network error. Please try again.');
+                previewContainer.classList.add('hidden');
+                formContainer.classList.remove('hidden');
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Confirm Booking';
+        });
+
+
+        // --- HELPER: Show field-level error ---
+        function showFieldError(fieldName, message) {
+            var errorEl = document.getElementById('error-' + fieldName);
+            if (errorEl) {
+                errorEl.textContent = message;
+                errorEl.style.display = 'block';
+            }
+        }
+
+
+        // --- HELPER: Escape HTML (XSS prevention in preview) ---
+        function escapeHtml(text) {
+            var div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+
+        // ============================================
+        //  FEATURE 12: CLIENT LOOKUP — Phone diye appointment search
+        // ============================================
+
+        var lookupPhone = document.getElementById('lookup-phone');
+        var lookupResults = document.getElementById('lookup-results');
+        var btnLookup = document.getElementById('btn-lookup');
+
+        // Search button click
+        btnLookup.addEventListener('click', function() {
+            performLookup();
+        });
+
+        // Enter key press e o search hobe
+        lookupPhone.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') performLookup();
+        });
+
+        async function performLookup() {
+            var phone = lookupPhone.value.trim();
+
+            if (!phone) {
+                showAlert('lookup-alert', 'error', 'Please enter your phone number.');
+                return;
+            }
+
+            if (!/^[0-9]+$/.test(phone)) {
+                showAlert('lookup-alert', 'error', 'Phone number must contain only digits.');
+                return;
+            }
+
+            // Loading state
+            lookupResults.innerHTML = '<div class="text-center text-muted" style="padding:2rem;"><span class="spinner"></span> Searching...</div>';
+
+            try {
+                var response = await fetch('/api/appointments.php?action=lookup&phone=' + encodeURIComponent(phone));
+                var result = await response.json();
+
+                if (!result.success) {
+                    lookupResults.innerHTML = '<div class="empty-state"><p>' + escapeHtml(result.error) + '</p></div>';
+                    return;
+                }
+
+                if (result.count === 0) {
+                    lookupResults.innerHTML = '<div class="empty-state"><p>No appointments found for this phone number.</p></div>';
+                    return;
+                }
+
+                // Build results table
+                var html = '<div class="card"><div class="card-title">' + result.count + ' Appointment' + (result.count > 1 ? 's' : '') + ' Found</div>';
+                html += '<div class="table-wrapper"><table><thead><tr>';
+                html += '<th>Date</th><th>Mechanic</th><th>Car License</th><th>Status</th><th>Action</th>';
+                html += '</tr></thead><tbody>';
+
+                for (var i = 0; i < result.data.length; i++) {
+                    var apt = result.data[i];
+                    var badgeClass = 'badge-' + apt.status;
+
+                    html += '<tr>';
+                    html += '<td>' + formatDate(apt.appointment_date) + '</td>';
+                    html += '<td>' + escapeHtml(apt.mechanic_name) + '<br><span class="text-muted" style="font-size:0.78rem;">' + escapeHtml(apt.mechanic_specialization) + '</span></td>';
+                    html += '<td>' + escapeHtml(apt.car_license_number) + '</td>';
+                    html += '<td><span class="badge ' + badgeClass + '">' + apt.status + '</span></td>';
+                    html += '<td>';
+
+                    if (apt.status === 'active') {
+                        html += '<button class="btn btn-danger btn-sm cancel-apt-btn" data-id="' + apt.id + '" data-phone="' + escapeHtml(phone) + '">Cancel</button>';
+                    } else {
+                        html += '<span class="text-muted">—</span>';
+                    }
+
+                    html += '</td></tr>';
+                }
+
+                html += '</tbody></table></div></div>';
+                lookupResults.innerHTML = html;
+
+            } catch (err) {
+                lookupResults.innerHTML = '<div class="empty-state"><p>Network error. Please try again.</p></div>';
+            }
+        }
+
+
+        // ============================================
+        //  FEATURE 13: CLIENT CANCEL — Active appointment cancel
+        // ============================================
+
+        // Event delegation — dynamically generated cancel buttons
+        lookupResults.addEventListener('click', async function(e) {
+            var btn = e.target.closest('.cancel-apt-btn');
+            if (!btn) return;
+
+            // Confirmation prompt
+            if (!confirm('Are you sure you want to cancel this appointment?')) return;
+
+            btn.disabled = true;
+            btn.textContent = 'Cancelling...';
+
+            try {
+                var response = await fetch('/api/appointments.php?action=cancel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        appointment_id: parseInt(btn.dataset.id),
+                        client_phone: btn.dataset.phone
+                    })
+                });
+
+                var result = await response.json();
+
+                if (result.success) {
+                    showAlert('lookup-alert', 'success', result.message);
+                    // Re-fetch koro — table update hobe
+                    performLookup();
+                } else {
+                    showAlert('lookup-alert', 'error', result.error);
+                    btn.disabled = false;
+                    btn.textContent = 'Cancel';
+                }
+            } catch (err) {
+                showAlert('lookup-alert', 'error', 'Network error. Please try again.');
+                btn.disabled = false;
+                btn.textContent = 'Cancel';
+            }
+        });
+
+
+        // ============================================
+        //  FEATURE 14: ADMIN LOGIN
+        // ============================================
+
+        var adminLoginForm = document.getElementById('admin-login-form');
+        var adminLoginContainer = document.getElementById('admin-login-container');
+        var adminDashboard = document.getElementById('admin-dashboard');
+        var isAdminLoggedIn = false;
+
+        // Check localStorage — jodi already logged in thake
+        if (localStorage.getItem('admin_logged_in') === 'true') {
+            isAdminLoggedIn = true;
+            adminLoginContainer.classList.add('hidden');
+            adminDashboard.classList.remove('hidden');
+            loadAdminAppointments();
+            loadAdminMechanics();
+        }
+
+        adminLoginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            var username = document.getElementById('admin_username').value.trim();
+            var password = document.getElementById('admin_password').value;
+
+            if (!username || !password) {
+                showAlert('admin-login-alert', 'error', 'Please enter username and password.');
+                return;
+            }
+
+            try {
+                var response = await fetch('/api/admin.php?action=login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, password: password })
+                });
+
+                var result = await response.json();
+
+                if (result.success) {
+                    isAdminLoggedIn = true;
+                    localStorage.setItem('admin_logged_in', 'true');
+                    adminLoginContainer.classList.add('hidden');
+                    adminDashboard.classList.remove('hidden');
+                    adminLoginForm.reset();
+                    loadAdminAppointments();
+                    loadAdminMechanics();
+                } else {
+                    showAlert('admin-login-alert', 'error', result.error);
+                }
+            } catch (err) {
+                showAlert('admin-login-alert', 'error', 'Network error. Please try again.');
+            }
+        });
+
+        // Logout
+        document.getElementById('btn-admin-logout').addEventListener('click', function() {
+            isAdminLoggedIn = false;
+            localStorage.removeItem('admin_logged_in');
+            adminDashboard.classList.add('hidden');
+            adminLoginContainer.classList.remove('hidden');
+        });
+
+
+        // ============================================
+        //  FEATURE 15: ADMIN APPOINTMENTS LIST + FILTERS
+        // ============================================
+
+        var adminAppointmentsBody = document.getElementById('admin-appointments-body');
+
+        // Admin API helper — adds X-Admin header
+        function adminFetch(url, options) {
+            options = options || {};
+            options.headers = options.headers || {};
+            options.headers['X-Admin'] = 'true';
+            return fetch(url, options);
+        }
+
+        async function loadAdminAppointments() {
+            // Build filter query string
+            var params = [];
+            var filterDate = document.getElementById('filter-date').value;
+            var filterMechanic = document.getElementById('filter-mechanic').value;
+            var filterStatus = document.getElementById('filter-status').value;
+            var filterPhone = document.getElementById('filter-phone').value.trim();
+
+            if (filterDate) params.push('date=' + filterDate);
+            if (filterMechanic) params.push('mechanic_id=' + filterMechanic);
+            if (filterStatus) params.push('status=' + filterStatus);
+            if (filterPhone) params.push('phone=' + encodeURIComponent(filterPhone));
+
+            var queryString = params.length > 0 ? '&' + params.join('&') : '';
+
+            adminAppointmentsBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:2rem;"><span class="spinner"></span> Loading...</td></tr>';
+
+            try {
+                var response = await adminFetch('/api/admin.php?action=appointments' + queryString);
+                var result = await response.json();
+
+                if (!result.success) {
+                    adminAppointmentsBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">' + escapeHtml(result.error) + '</td></tr>';
+                    return;
+                }
+
+                if (result.count === 0) {
+                    adminAppointmentsBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:2rem;">No appointments found.</td></tr>';
+                    return;
+                }
+
+                var html = '';
+                for (var i = 0; i < result.data.length; i++) {
+                    var apt = result.data[i];
+                    var badgeClass = 'badge-' + apt.status;
+
+                    html += '<tr>';
+                    html += '<td>' + escapeHtml(apt.client_name) + '<br><span class="text-muted" style="font-size:0.78rem;">' + escapeHtml(apt.client_address) + '</span></td>';
+                    html += '<td>' + escapeHtml(apt.client_phone) + '</td>';
+                    html += '<td>' + escapeHtml(apt.car_license_number) + '</td>';
+                    html += '<td>' + formatDate(apt.appointment_date) + '</td>';
+                    html += '<td>' + escapeHtml(apt.mechanic_name) + '</td>';
+                    html += '<td><span class="badge ' + badgeClass + '">' + apt.status + '</span></td>';
+                    html += '<td>';
+                    html += '<button class="btn btn-secondary btn-sm admin-edit-btn" data-id="' + apt.id + '" data-date="' + apt.appointment_date + '" data-mechanic-id="' + apt.mechanic_id + '" data-status="' + apt.status + '" style="margin-bottom:0.25rem;">Edit</button>';
+                    html += '</td>';
+                    html += '</tr>';
+                }
+
+                adminAppointmentsBody.innerHTML = html;
+            } catch (err) {
+                adminAppointmentsBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Error loading appointments.</td></tr>';
+            }
+        }
+
+        // Filter change events — auto reload
+        document.getElementById('filter-date').addEventListener('change', loadAdminAppointments);
+        document.getElementById('filter-mechanic').addEventListener('change', loadAdminAppointments);
+        document.getElementById('filter-status').addEventListener('change', loadAdminAppointments);
+
+        var filterPhoneTimeout;
+        document.getElementById('filter-phone').addEventListener('input', function() {
+            clearTimeout(filterPhoneTimeout);
+            filterPhoneTimeout = setTimeout(loadAdminAppointments, 500);
+        });
+
+        // Populate mechanic filter dropdown
+        async function populateMechanicFilter() {
+            try {
+                var response = await fetch('/api/mechanics.php?action=list');
+                var result = await response.json();
+                if (result.success) {
+                    var select = document.getElementById('filter-mechanic');
+                    for (var i = 0; i < result.data.length; i++) {
+                        var opt = document.createElement('option');
+                        opt.value = result.data[i].id;
+                        opt.textContent = result.data[i].name;
+                        select.appendChild(opt);
+                    }
+                }
+            } catch (err) { /* silent */ }
+        }
+        populateMechanicFilter();
+
+
+        // ============================================
+        //  FEATURE 16-17-19: ADMIN EDIT MODAL
+        //  Change date, mechanic, status via modal popup
+        // ============================================
+
+        // All mechanics cache (for mechanic dropdown in modal)
+        var allMechanics = [];
+
+        async function fetchAllMechanics() {
+            if (allMechanics.length > 0) return allMechanics;
+            try {
+                var response = await adminFetch('/api/admin.php?action=mechanics');
+                var result = await response.json();
+                if (result.success) allMechanics = result.data;
+            } catch (err) { /* silent */ }
+            return allMechanics;
+        }
+
+        // Event delegation for Edit buttons
+        adminAppointmentsBody.addEventListener('click', async function(e) {
+            var btn = e.target.closest('.admin-edit-btn');
+            if (!btn) return;
+
+            var aptId = btn.dataset.id;
+            var currentDate = btn.dataset.date;
+            var currentMechanicId = btn.dataset.mechanicId;
+            var currentStatus = btn.dataset.status;
+
+            // Fetch mechanics for dropdown
+            var mechanics = await fetchAllMechanics();
+
+            // Build modal body with 3 edit sections
+            var mechanicOptions = '';
+            for (var i = 0; i < mechanics.length; i++) {
+                var m = mechanics[i];
+                var selected = (m.id == currentMechanicId) ? ' selected' : '';
+                mechanicOptions += '<option value="' + m.id + '"' + selected + '>' + m.name + ' (' + m.specialization + ')</option>';
+            }
+
+            var statusOptions = '';
+            var statuses = ['active', 'completed', 'cancelled'];
+            for (var j = 0; j < statuses.length; j++) {
+                var sel = (statuses[j] === currentStatus) ? ' selected' : '';
+                statusOptions += '<option value="' + statuses[j] + '"' + sel + '>' + statuses[j] + '</option>';
+            }
+
+            var bodyHtml = '' +
+                '<div class="form-group">' +
+                    '<label>Appointment Date</label>' +
+                    '<input type="date" id="edit-date" value="' + currentDate + '" min="' + today + '">' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label>Mechanic</label>' +
+                    '<select id="edit-mechanic">' + mechanicOptions + '</select>' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label>Status</label>' +
+                    '<select id="edit-status">' + statusOptions + '</select>' +
+                '</div>';
+
+            openModal('Edit Appointment #' + aptId, bodyHtml);
+
+            // Save button handler — remove old, add new
+            var saveBtn = document.getElementById('btn-modal-save');
+            var newSaveBtn = saveBtn.cloneNode(true);
+            saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+
+            newSaveBtn.addEventListener('click', async function() {
+                newSaveBtn.disabled = true;
+                newSaveBtn.textContent = 'Saving...';
+
+                var newDate = document.getElementById('edit-date').value;
+                var newMechanicId = document.getElementById('edit-mechanic').value;
+                var newStatus = document.getElementById('edit-status').value;
+
+                var errors = [];
+
+                // Update date if changed
+                if (newDate !== currentDate) {
+                    try {
+                        var res = await adminFetch('/api/admin.php?action=update_date', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ appointment_id: parseInt(aptId), new_date: newDate })
+                        });
+                        var r = await res.json();
+                        if (!r.success) errors.push(r.error);
+                    } catch (err) { errors.push('Failed to update date'); }
+                }
+
+                // Update mechanic if changed
+                if (newMechanicId !== currentMechanicId) {
+                    try {
+                        var res2 = await adminFetch('/api/admin.php?action=update_mechanic', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ appointment_id: parseInt(aptId), new_mechanic_id: parseInt(newMechanicId) })
+                        });
+                        var r2 = await res2.json();
+                        if (!r2.success) errors.push(r2.error);
+                    } catch (err) { errors.push('Failed to update mechanic'); }
+                }
+
+                // Update status if changed
+                if (newStatus !== currentStatus) {
+                    try {
+                        var res3 = await adminFetch('/api/admin.php?action=update_status', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ appointment_id: parseInt(aptId), new_status: newStatus })
+                        });
+                        var r3 = await res3.json();
+                        if (!r3.success) errors.push(r3.error);
+                    } catch (err) { errors.push('Failed to update status'); }
+                }
+
+                closeModal();
+
+                if (errors.length > 0) {
+                    showAlert('admin-alert', 'error', errors.join('. '));
+                } else {
+                    showAlert('admin-alert', 'success', 'Appointment updated successfully.');
+                }
+
+                // Reload table
+                loadAdminAppointments();
+            });
+        });
+
+
+        // ============================================
+        //  FEATURE 18: MECHANIC MAX SLOTS SETTINGS
+        // ============================================
+
+        var mechanicSettingsList = document.getElementById('mechanic-settings-list');
+
+        async function loadAdminMechanics() {
+            try {
+                var response = await adminFetch('/api/admin.php?action=mechanics');
+                var result = await response.json();
+
+                if (!result.success) {
+                    mechanicSettingsList.innerHTML = '<p class="text-muted">Failed to load mechanics.</p>';
+                    return;
+                }
+
+                var html = '';
+                for (var i = 0; i < result.data.length; i++) {
+                    var m = result.data[i];
+                    html += '<div class="flex-between" style="padding:0.75rem 0; border-bottom:1px solid var(--border);">';
+                    html += '<div><strong>' + escapeHtml(m.name) + '</strong><br><span class="text-muted" style="font-size:0.8rem;">' + escapeHtml(m.specialization) + '</span></div>';
+                    html += '<div style="display:flex; align-items:center; gap:0.5rem;">';
+                    html += '<label style="font-size:0.8rem; color:var(--text-secondary);">Max slots:</label>';
+                    html += '<input type="number" class="max-slot-input" data-mechanic-id="' + m.id + '" value="' + m.max_daily_appointments + '" min="1" max="20" style="width:60px; padding:0.35rem 0.5rem; background:var(--bg-tertiary); border:1px solid var(--border); border-radius:var(--radius); color:var(--text-primary); font-size:0.85rem; text-align:center;">';
+                    html += '<button class="btn btn-primary btn-sm save-max-slot-btn" data-mechanic-id="' + m.id + '">Save</button>';
+                    html += '</div></div>';
+                }
+
+                mechanicSettingsList.innerHTML = html;
+            } catch (err) {
+                mechanicSettingsList.innerHTML = '<p class="text-muted">Error loading mechanics.</p>';
+            }
+        }
+
+        // Event delegation for Save max slot buttons
+        mechanicSettingsList.addEventListener('click', async function(e) {
+            var btn = e.target.closest('.save-max-slot-btn');
+            if (!btn) return;
+
+            var mechanicId = btn.dataset.mechanicId;
+            var input = mechanicSettingsList.querySelector('.max-slot-input[data-mechanic-id="' + mechanicId + '"]');
+            var maxSlots = parseInt(input.value);
+
+            if (isNaN(maxSlots) || maxSlots < 1 || maxSlots > 20) {
+                showAlert('admin-alert', 'error', 'Max slots must be between 1 and 20.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                var response = await adminFetch('/api/admin.php?action=update_max_slots', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mechanic_id: parseInt(mechanicId), max_slots: maxSlots })
+                });
+
+                var result = await response.json();
+
+                if (result.success) {
+                    showAlert('admin-alert', 'success', result.message);
+                } else {
+                    showAlert('admin-alert', 'error', result.error);
+                }
+            } catch (err) {
+                showAlert('admin-alert', 'error', 'Network error. Please try again.');
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Save';
+        });
+
+    </script>
+
+</body>
+</html>
