@@ -9,11 +9,12 @@
 // 1. Database Credentials (Login Info)
 // -----------------------------------------
 // Ei 4 ta info MySQL e connect korte lagbe:
+// LOCAL SETUP FOR LOCALHOST
 
-$host     = 'sql111.infinityfree.com';        // ← STEP 3 er MySQL Host
-$dbname   = 'if0_41359656_car_workshop';       // ← STEP 3 er Database Name
-$username = 'if0_41359656';                    // ← STEP 3 er Username  
-$password = 'bRDZR3D2QUoE';              // ← STEP 3 er Password     // MySQL er password
+$host     = 'localhost';                    // ← Local MySQL Host
+$dbname   = 'car_workshop';                 // ← Database Name
+$username = 'root';                         // ← MySQL Username  
+$password = '';                             // ← MySQL Password (empty for local setup)
 
 
 // -----------------------------------------
