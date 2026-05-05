@@ -130,12 +130,44 @@ if ($action === 'book') {
         $booked = (int)$slotInfo['booked'];
         $maxSlots = (int)$mechanic['max_daily_appointments'];
 
+        // ===== CHECK IF ALL SLOTS ARE BOOKED =====
+        // Jodi sab slot book thake, customer ke waiting list e add koro
         if ($booked >= $maxSlots) {
-            $pdo->rollBack();
+            // Waiting list e add koro
+            $stmt = $pdo->prepare('
+                INSERT INTO waiting_list 
+                    (client_name, client_address, client_phone, car_license_number, car_engine_number, mechanic_id, appointment_date, status)
+                VALUES 
+                    (?, ?, ?, ?, ?, ?, ?, \'waiting\')
+            ');
+
+            $stmt->execute([
+                $clientName,
+                $clientAddress,
+                $clientPhone,
+                $carLicense,
+                $carEngine,
+                $mechanicId,
+                $appointmentDate
+            ]);
+
+            $waitingId = $pdo->lastInsertId();
+            $pdo->commit();
+
+            // Response: Customer added to waiting list
             jsonResponse([
-                'success' => false,
-                'error' => $mechanic['name'] . ' has no available slots on this date. All ' . $maxSlots . ' slots are booked.'
-            ], 409);  // 409 = Conflict
+                'success' => true,
+                'status' => 'WAITING_LIST',
+                'message' => 'All slots are currently booked! You have been added to the waiting list.',
+                'data' => [
+                    'waiting_id' => (int)$waitingId,
+                    'client_name' => $clientName,
+                    'mechanic_name' => $mechanic['name'],
+                    'appointment_date' => $appointmentDate,
+                    'notification' => 'You are in the waiting zone. If another customer cancels their booking, admin can confirm your appointment.',
+                    'phone_requirement' => 'Your phone number\'s last 3 digits must sum to 21 for confirmation eligibility.'
+                ]
+            ], 202);  // 202 = Accepted (processing, not yet confirmed)
         }
 
         // ----- Step 7: Duplicate check -----

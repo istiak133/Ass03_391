@@ -172,3 +172,34 @@ function validateDate($date) {
     // Shob check pass!
     return ['valid' => true];
 }
+
+
+// -----------------------------------------
+// 7. validatePhoneSum() — Phone Last 3 Digits Sum Check
+// -----------------------------------------
+// Ki kore: Phone number er last 3 digit sum = 21 kina check kore
+// USED FOR: Waiting list confirmation validation
+//
+// Return: true = sum is 21, false = sum is not 21
+//
+// Example:
+//   validatePhoneSum('01711000123') → 1+2+3 = 6 → false
+//   validatePhoneSum('01799999999') → 9+9+9 = 27 → false
+//   validatePhoneSum('01711111159') → 1+5+9 = 15 → false
+//   validatePhoneSum('01711111555') → 5+5+5 = 15 → false
+//   validatePhoneSum('01711111789') → 7+8+9 = 24 → false
+//   validatePhoneSum('01711111696') → 6+9+6 = 21 → TRUE ✓
+
+function validatePhoneSum($phone) {
+    // Last 3 character extract
+    $last3 = substr($phone, -3);
+    
+    // Each digit sum
+    $sum = 0;
+    for ($i = 0; $i < 3; $i++) {
+        $sum += (int)$last3[$i];
+    }
+    
+    // Sum = 21 kina check
+    return $sum === 21;
+}

@@ -45,13 +45,15 @@ if ($action === 'login') {
         jsonResponse(['success' => false, 'error' => 'Invalid username or password'], 401);
     }
 
-    // Login success!
+    // Login success! Return a token or flag that frontend can use
+    // For now, frontend will store admin_id and use X-Admin header
     jsonResponse([
         'success' => true,
         'message' => 'Login successful',
         'data' => [
             'admin_id' => $admin['id'],
-            'username' => $admin['username']
+            'username' => $admin['username'],
+            'auth_token' => base64_encode($admin['id'] . ':' . time())  // Simple token
         ]
     ]);
 }
@@ -59,14 +61,17 @@ if ($action === 'login') {
 
 // =========================================================
 //  ADMIN AUTH CHECK — Login chara baki actions e lagbe
+//  Skip auth check if action is login
 // =========================================================
 // Simple approach: Frontend header e 'X-Admin: true' pathabe
-// Real production e JWT/session use korte hobe
+// Production e JWT/session use korte hobe
 
-$isAdmin = isset($_SERVER['HTTP_X_ADMIN']) && $_SERVER['HTTP_X_ADMIN'] === 'true';
+if ($action !== 'login') {
+    $isAdmin = isset($_SERVER['HTTP_X_ADMIN']) && $_SERVER['HTTP_X_ADMIN'] === 'true';
 
-if (!$isAdmin) {
-    jsonResponse(['success' => false, 'error' => 'Admin authentication required'], 401);
+    if (!$isAdmin) {
+        jsonResponse(['success' => false, 'error' => 'Admin authentication required. Please login first.'], 401);
+    }
 }
 
 
@@ -363,6 +368,266 @@ if ($action === 'mechanics') {
     $mechanics = $stmt->fetchAll();
 
     jsonResponse(['success' => true, 'data' => $mechanics]);
+}
+
+
+// =========================================================
+//  ACTION: WAITING_LIST — Shob Waiting Customers
+//  Method: GET
+//  Params: ?mechanic_id=1&date=2026-03-12&status=waiting
+// =========================================================
+
+if ($action === 'waiting_list') {
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        jsonResponse(['success' => false, 'error' => 'GET method required'], 405);
+    }
+
+    // Base query
+    $sql = '
+        SELECT 
+            w.id,
+            w.client_name,
+            w.client_phone,
+            w.client_address,
+            w.car_license_number,
+            w.car_engine_number,
+            w.appointment_date,
+            w.status,
+            w.created_at,
+            w.mechanic_id,
+            m.name AS mechanic_name,
+            m.specialization AS mechanic_specialization
+        FROM waiting_list w
+        INNER JOIN mechanics m ON w.mechanic_id = m.id
+        WHERE 1=1
+    ';
+
+    $params = [];
+
+    // Filter: Mechanic
+    if (!empty($_GET['mechanic_id'])) {
+        $sql .= ' AND w.mechanic_id = ?';
+        $params[] = (int)$_GET['mechanic_id'];
+    }
+
+    // Filter: Date
+    if (!empty($_GET['date'])) {
+        $sql .= ' AND w.appointment_date = ?';
+        $params[] = $_GET['date'];
+    }
+
+    // Filter: Status
+    if (!empty($_GET['status'])) {
+        $sql .= ' AND w.status = ?';
+        $params[] = $_GET['status'];
+    }
+
+    // Filter: Phone (partial match)
+    if (!empty($_GET['phone'])) {
+        $sql .= ' AND w.client_phone LIKE ?';
+        $params[] = '%' . $_GET['phone'] . '%';
+    }
+
+    $sql .= ' ORDER BY w.appointment_date ASC, w.created_at ASC';
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $waitingList = $stmt->fetchAll();
+
+    // Add eligibility check for each customer
+    $waitingWithEligibility = [];
+    foreach ($waitingList as $waiting) {
+        $isEligible = validatePhoneSum($waiting['client_phone']);
+        $waiting['eligible_for_confirmation'] = $isEligible;
+        
+        if ($isEligible) {
+            $last3 = substr($waiting['client_phone'], -3);
+            $sum = 0;
+            for ($i = 0; $i < 3; $i++) {
+                $sum += (int)$last3[$i];
+            }
+            $waiting['phone_last_3_digits'] = $last3;
+            $waiting['phone_digit_sum'] = $sum;
+        }
+        
+        $waitingWithEligibility[] = $waiting;
+    }
+
+    jsonResponse([
+        'success' => true,
+        'data' => $waitingWithEligibility,
+        'count' => count($waitingWithEligibility),
+        'note' => 'Only customers with last 3 phone digits sum = 21 can be confirmed'
+    ]);
+}
+
+
+// =========================================================
+//  ACTION: CONFIRM_WAITING — Move customer from waiting to confirmed
+//  Method: POST
+//  Body: {waiting_id}
+//
+//  RULES:
+//  - Customer's last 3 phone digits must sum to 21
+//  - A slot must be available for that mechanic on that date
+//  - Customer will be moved to appointments table
+// =========================================================
+
+if ($action === 'confirm_waiting') {
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(['success' => false, 'error' => 'POST method required'], 405);
+    }
+
+    $body = getRequestBody();
+    $waitingId = (int)($body['waiting_id'] ?? 0);
+
+    if ($waitingId <= 0) {
+        jsonResponse(['success' => false, 'error' => 'Waiting ID is required'], 400);
+    }
+
+    // Get waiting customer
+    $stmt = $pdo->prepare('SELECT * FROM waiting_list WHERE id = ? AND status = \'waiting\'');
+    $stmt->execute([$waitingId]);
+    $waiting = $stmt->fetch();
+
+    if (!$waiting) {
+        jsonResponse(['success' => false, 'error' => 'Waiting record not found or already processed'], 404);
+    }
+
+    // VALIDATE: Phone last 3 digits sum = 21?
+    if (!validatePhoneSum($waiting['client_phone'])) {
+        $last3 = substr($waiting['client_phone'], -3);
+        $sum = (int)$last3[0] + (int)$last3[1] + (int)$last3[2];
+        
+        jsonResponse([
+            'success' => false,
+            'error' => 'Phone number does not meet eligibility criteria',
+            'details' => "Last 3 digits: {$last3}, Sum: {$sum}. Required: 21"
+        ], 400);
+    }
+
+    // Start transaction
+    $pdo->beginTransaction();
+
+    try {
+        // Check if slot is now available
+        $stmt = $pdo->prepare('
+            SELECT COUNT(*) AS booked FROM appointments 
+            WHERE mechanic_id = ? AND appointment_date = ? AND status = \'active\'
+        ');
+        $stmt->execute([$waiting['mechanic_id'], $waiting['appointment_date']]);
+        $slotInfo = $stmt->fetch();
+
+        $stmt2 = $pdo->prepare('SELECT max_daily_appointments FROM mechanics WHERE id = ? AND is_active = 1');
+        $stmt2->execute([$waiting['mechanic_id']]);
+        $mechanic = $stmt2->fetch();
+
+        if (!$mechanic) {
+            $pdo->rollBack();
+            jsonResponse(['success' => false, 'error' => 'Mechanic not found or inactive'], 404);
+        }
+
+        $booked = (int)$slotInfo['booked'];
+        $maxSlots = (int)$mechanic['max_daily_appointments'];
+
+        if ($booked >= $maxSlots) {
+            $pdo->rollBack();
+            jsonResponse([
+                'success' => false,
+                'error' => 'No available slots for this mechanic on this date',
+                'details' => "Booked: $booked / $maxSlots"
+            ], 409);
+        }
+
+        // Move to appointments
+        $stmt = $pdo->prepare('
+            INSERT INTO appointments 
+                (client_name, client_phone, client_address, car_license_number, car_engine_number, mechanic_id, appointment_date, status)
+            VALUES 
+                (?, ?, ?, ?, ?, ?, ?, \'active\')
+        ');
+
+        $stmt->execute([
+            $waiting['client_name'],
+            $waiting['client_phone'],
+            $waiting['client_address'],
+            $waiting['car_license_number'],
+            $waiting['car_engine_number'],
+            $waiting['mechanic_id'],
+            $waiting['appointment_date']
+        ]);
+
+        $appointmentId = $pdo->lastInsertId();
+
+        // Update waiting list status to confirmed
+        $stmt = $pdo->prepare('UPDATE waiting_list SET status = \'confirmed\' WHERE id = ?');
+        $stmt->execute([$waitingId]);
+
+        $pdo->commit();
+
+        // Success!
+        jsonResponse([
+            'success' => true,
+            'message' => 'Customer confirmed and appointment created!',
+            'data' => [
+                'waiting_id' => (int)$waitingId,
+                'appointment_id' => (int)$appointmentId,
+                'client_name' => $waiting['client_name'],
+                'client_phone' => $waiting['client_phone'],
+                'mechanic_id' => (int)$waiting['mechanic_id'],
+                'appointment_date' => $waiting['appointment_date']
+            ]
+        ], 201);
+
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        jsonResponse(['success' => false, 'error' => $e->getMessage()], 500);
+    }
+}
+
+
+// =========================================================
+//  ACTION: CANCEL_WAITING — Cancel a waiting customer
+//  Method: POST
+//  Body: {waiting_id}
+// =========================================================
+
+if ($action === 'cancel_waiting') {
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(['success' => false, 'error' => 'POST method required'], 405);
+    }
+
+    $body = getRequestBody();
+    $waitingId = (int)($body['waiting_id'] ?? 0);
+
+    if ($waitingId <= 0) {
+        jsonResponse(['success' => false, 'error' => 'Waiting ID is required'], 400);
+    }
+
+    // Get waiting customer
+    $stmt = $pdo->prepare('SELECT id, client_name FROM waiting_list WHERE id = ? AND status = \'waiting\'');
+    $stmt->execute([$waitingId]);
+    $waiting = $stmt->fetch();
+
+    if (!$waiting) {
+        jsonResponse(['success' => false, 'error' => 'Waiting record not found or already processed'], 404);
+    }
+
+    // Update status to cancelled
+    $stmt = $pdo->prepare('UPDATE waiting_list SET status = \'cancelled\' WHERE id = ?');
+    $stmt->execute([$waitingId]);
+
+    jsonResponse([
+        'success' => true,
+        'message' => 'Waiting list entry cancelled',
+        'data' => [
+            'waiting_id' => (int)$waitingId,
+            'client_name' => $waiting['client_name']
+        ]
+    ]);
 }
 
 
